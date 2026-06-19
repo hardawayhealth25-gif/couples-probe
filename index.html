@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Stop having the same fight</title>
+<meta name="description" content="Catch the same fight before it spirals — together." />
+<style>
+  :root{
+    --bg1:#1a1530; --bg2:#241a3d; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12);
+    --ink:#f4f1fb; --dim:#b9b2d4; --mint:#7ee0c0; --lilac:#b9a8ff; --coral:#ff9a8b; --green:#67d39a;
+    --warm:#ffd9a8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(120% 90% at 50% -10%,#2c2150 0%,var(--bg1) 55%,#120e22 100%);
+    color:var(--ink); min-height:100dvh; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:34px 22px 64px;min-height:100dvh;display:flex;flex-direction:column;justify-content:center}
+  .eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 18px;font-weight:600}
+  h1{font-size:clamp(30px,7vw,40px);line-height:1.08;margin:0 0 16px;font-weight:800;letter-spacing:-.02em}
+  h1 .accent{background:linear-gradient(90deg,var(--mint),var(--lilac));-webkit-background-clip:text;background-clip:text;color:transparent}
+  p.sub{font-size:17px;color:var(--dim);margin:0 0 26px;max-width:30em}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;margin:14px 0;backdrop-filter:blur(8px)}
+  label{display:block;font-size:14px;color:var(--dim);font-weight:600;margin:0 0 8px}
+  input[type=text],input[type=email],input[type=tel],textarea{
+    width:100%;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:14px;color:var(--ink);
+    font-size:16px;padding:14px;font-family:inherit;resize:none
+  }
+  textarea{min-height:78px}
+  input:focus,textarea:focus{outline:none;border-color:var(--lilac)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;border:none;cursor:pointer;
+    font-size:17px;font-weight:700;font-family:inherit;border-radius:16px;padding:17px 20px;margin-top:6px;color:#1a1530;
+    background:linear-gradient(90deg,var(--mint),var(--lilac));transition:transform .08s ease,opacity .2s}
+  .btn:active{transform:scale(.985)}
+  .btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost{background:rgba(255,255,255,.08);color:var(--ink)}
+  .btn-row{display:flex;gap:10px}
+  .btn-row .btn{margin-top:0}
+  .step{display:none}
+  .step.active{display:block;animation:rise .35s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .muted{font-size:13px;color:var(--dim);margin-top:14px}
+  .pill{display:inline-block;font-size:12px;font-weight:700;color:var(--green);background:rgba(103,211,154,.14);
+    border-radius:999px;padding:5px 11px;margin-bottom:16px}
+  .link-box{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.3);border:1px dashed var(--line);
+    border-radius:13px;padding:12px 14px;font-size:13px;color:var(--dim);word-break:break-all;margin:6px 0 14px}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  .confirm-row{display:flex;gap:10px;margin:18px 0 6px}
+  .who{font-weight:800;color:var(--warm)}
+  .success h1{font-size:30px}
+  .heart{font-size:40px;display:block;margin-bottom:14px}
+  #dbg{position:fixed;bottom:0;left:0;right:0;max-height:42dvh;overflow:auto;background:#000c;border-top:1px solid var(--line);
+    font:11px/1.5 ui-monospace,Menlo,monospace;color:#9fe;padding:8px 12px;display:none;z-index:99}
+  #dbg b{color:var(--warm)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><!-- rendered by JS --></div>
+<div id="dbg"></div>
+
+<script>
+/* =======================================================================
+   COUPLES "INVITE YOUR PARTNER" VALIDATION PROBE — anger-couples-v1
+   Single-file, no backend. Ties the two-sided funnel together with a
+   URL-carried invite_id. Built to the adversarially-revised spec:
+   - 50/50 couples-vs-solo CONTROL ARM (attributes joins to the dyad mechanic)
+   - confirmed-partner tier + self-open guard + honeypot + dwell check
+   - join-given-open is the primary metric; web result is a CEILING gate
+   ⚠️ ANALYTICS KEY: do NOT use the live iOS app PostHog key (it pollutes the
+   app funnel). Create a DEDICATED PostHog project for this probe and paste its
+   key below. Every event is also hard-tagged probe_version + product so the
+   data is isolable even if a shared key is ever used.
+   ======================================================================= */
+// Points at the Healthy Anger app's OWN PostHog project (NOT HealthyOne's). A
+// dedicated project needs a paid plan, so we isolate by probe_version instead —
+// every query MUST filter probe_version='anger-couples-v1' (the validity critic
+// explicitly accepted this in place of a separate project). This is a publishable
+// client key (it already ships in the iOS binary), not a secret.
+const POSTHOG_KEY  = "phc_ym3ErcfvpPVp44NcvumKJkLYPxsKstmbfN2Boec985Tq";
+const POSTHOG_HOST = "https://us.i.posthog.com";
+const PROBE_VERSION = "anger-couples-v1";
+const PRODUCT = "anger-couples-probe";
+
+/* ---------- tiny utils ---------- */
+const qs = new URLSearchParams(location.search);
+const $ = (s,r=document)=>r.querySelector(s);
+const app = $("#app");
+const uuid = ()=> (crypto.randomUUID ? crypto.randomUUID()
+                   : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c=='x'?r:(r&3|8)).toString(16)}));
+const ls = { get:(k)=>{try{return localStorage.getItem(k)}catch(e){return null}},
+             set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}} };
+
+/* ---------- identity / arm ---------- */
+let session_id = ls.get("probe_session"); if(!session_id){session_id=uuid();ls.set("probe_session",session_id);}
+const inviteParam = qs.get("invite");
+const fromName = (qs.get("from")||"").replace(/[^\w\s'\-]/g,"").slice(0,24).trim();
+const role = inviteParam ? "p2" : "p1";
+// Control arm: assign once per P1 device, 50/50. P2 inherits the arm from the link is N/A
+// (P2's job is the same regardless); we tag P2 events with the inviter's arm via ?a=.
+let arm = ls.get("probe_arm");
+if(role==="p1" && !arm){ arm = Math.random()<0.5 ? "couples":"solo"; ls.set("probe_arm",arm); }
+if(role==="p2"){ arm = qs.get("a")==="solo" ? "solo" : "couples"; } // links are only made in couples arm
+if(qs.get("arm")==="couples"||qs.get("arm")==="solo"){ arm=qs.get("arm"); ls.set("probe_arm",arm); } // QA override
+const landedAt = Date.now();
+
+/* ---------- analytics ---------- */
+const __events=[];
+function track(event, props={}){
+  const base={ role, arm, probe_version:PROBE_VERSION, product:PRODUCT, session_id,
+               invite_id: props.invite_id ?? inviteParam ?? null };
+  const payload={...base,...props};
+  __events.push({event,...payload});
+  try{ if(window.posthog && POSTHOG_KEY.indexOf("REPLACE")<0) posthog.capture(event,payload); }catch(e){}
+  if(qs.get("debug")==="1") renderDbg();
+  console.log("[probe]",event,payload);
+}
+function initPosthog(){
+  if(POSTHOG_KEY.indexOf("REPLACE")===0){ console.warn("[probe] PostHog key not set — running in console-only mode"); return; }
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init(POSTHOG_KEY,{api_host:POSTHOG_HOST,capture_pageview:false,persistence:"localStorage+cookie"});
+}
+
+/* ---------- views ---------- */
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function renderP1(){
+  app.innerHTML = `
+    <p class="eyebrow">A two-person thing</p>
+    <h1>You're not fighting <span class="accent">about the dishes.</span></h1>
+    <p class="sub">It's the same fight, on a loop — and you both end up further apart than where you started.
+      There's a way to catch it before it spirals${arm==="couples"?", and it works best when you do it together":""}.
+      Two minutes to set up. Nothing to confess.</p>
+
+    <div class="step active" id="s-hero">
+      <button class="btn" id="cta-start">${arm==="couples"?"Start with your partner":"Start it yourself"}</button>
+      <p class="muted">No account. No app to download yet. We're testing whether this helps real couples.</p>
+    </div>
+
+    <div class="step" id="s-situation">
+      <div class="card">
+        <label>What's the fight you keep having? (just a few words — this stays private)</label>
+        <textarea id="situation" placeholder="e.g. it escalates fast and one of us shuts down"></textarea>
+        <div style="height:14px"></div>
+        <label>What should we call you?</label>
+        <input type="text" id="firstname" maxlength="24" placeholder="Your first name" autocomplete="given-name" />
+        <button class="btn" id="cta-make" style="margin-top:16px">${arm==="couples"?"Create our link":"Count me in"}</button>
+      </div>
+    </div>
+
+    <div class="step" id="s-share">
+      <div class="card">
+        <p class="pill">Your link is ready</p>
+        <p style="margin:0 0 6px;font-weight:700">Send it to your partner</p>
+        <p class="muted" style="margin-top:4px">You go first — they just take a look. Half of this is already done.</p>
+        <div class="link-box" id="linkbox"></div>
+        <div class="btn-row">
+          <button class="btn" id="sms">Text it to them</button>
+          <button class="btn ghost" id="copy">Copy link</button>
+        </div>
+        <p class="muted" id="shared-note" style="display:none">Sent. We'll measure if they open it and join — that's the whole test.</p>
+      </div>
+    </div>
+
+    <div class="step" id="s-solo-done">
+      <div class="card success" style="text-align:center">
+        <span class="heart">🌱</span>
+        <p style="font-weight:800;font-size:22px;margin:0 0 8px">You're on the list.</p>
+        <p class="sub" style="margin:0 auto">We'll be in touch as this opens up. Thanks for helping us test it.</p>
+      </div>
+    </div>`;
+
+  let invite_id=null, inviteUrl=null;
+  const show=(id)=>{document.querySelectorAll(".step").forEach(s=>s.classList.remove("active"));$("#"+id).classList.add("active");window.scrollTo({top:0,behavior:"smooth"});};
+  let startedTyping=false;
+
+  $("#cta-start").onclick=()=>{ show("s-situation"); setTimeout(()=>$("#situation").focus(),250); };
+  $("#situation").addEventListener("focus",()=>{ if(!startedTyping){startedTyping=true; track("p1_situation_started",{});} },{once:true});
+
+  $("#cta-make").onclick=()=>{
+    const sit=$("#situation").value.trim();
+    const len = sit.length===0?"empty":sit.length<20?"short":sit.length<80?"medium":"long";
+    const name=($("#firstname").value||"").replace(/[^\w\s'\-]/g,"").slice(0,24).trim();
+    track("p1_situation_submitted",{situation_length:len, has_name: !!name});
+
+    if(arm==="solo"){ track("solo_joined",{join_method:"tap_confirm"}); show("s-solo-done"); return; }
+
+    // couples arm → mint a durable invite_id (once per session) and build the link
+    invite_id = ls.get("invite_created:"+session_id);
+    if(!invite_id){ invite_id=uuid(); ls.set("invite_created:"+session_id,invite_id); }
+    ls.set("created_invite:"+invite_id,"1"); // self-open guard marker
+    const u=new URL(location.href); u.search="";
+    u.searchParams.set("invite",invite_id);
+    if(name) u.searchParams.set("from",name);
+    u.searchParams.set("a",arm);
+    inviteUrl=u.toString();
+    $("#linkbox").textContent=inviteUrl;
+    track("invite_created",{invite_id, invite_url:inviteUrl});
+    show("s-share");
+  };
+
+  const onShare=(method)=>{ track("invite_shared",{invite_id, share_method:method}); $("#shared-note").style.display="block"; };
+  // delegate after render of share step
+  app.addEventListener("click",(e)=>{
+    if(e.target.id==="sms"){
+      const msg=`Hey — found something for us. Not therapy, not a big thing. It's about us getting stuck in the same argument over and over and how to actually break the loop. I already started it. Take a look? ${inviteUrl||""}`;
+      onShare("sms"); location.href="sms:?&body="+encodeURIComponent(msg);
+    }else if(e.target.id==="copy"){
+      onShare("copy");
+      if(navigator.clipboard&&inviteUrl) navigator.clipboard.writeText(inviteUrl).catch(()=>{});
+      e.target.textContent="Copied ✓";
+    }
+  });
+
+  track("probe_pageview",{page:"landing", referrer_source:(qs.get("utm_source")||"direct")});
+}
+
+function renderP2(){
+  const is_creator_self_open = ls.get("created_invite:"+inviteParam)==="1";
+  const repeat = ls.get("p2_seen:"+inviteParam)==="1";
+  ls.set("p2_seen:"+inviteParam,"1");
+  const who = fromName ? esc(fromName) : "Your partner";
+
+  app.innerHTML = `
+    <p class="eyebrow">You're invited — not in trouble</p>
+    <h1><span class="who">${who}</span> wants to stop <span class="accent">having the same fight.</span></h1>
+    <p class="sub">This isn't about who's right or who started it. ${who==="Your partner"?"They":esc(fromName)+" "} reached out because they want things to feel better between you two — and they wanted to do this <b>with</b> you, not <b>at</b> you. It's a two-person thing. You're already half of it.</p>
+
+    <div class="step active" id="p2-confirm">
+      <div class="card">
+        <p style="font-weight:700;margin:0 0 4px">Quick check — is this from ${who}?</p>
+        <p class="muted" style="margin-top:0">We just want to make sure this reached the right person.</p>
+        <div class="confirm-row">
+          <button class="btn" id="yes" style="margin-top:0">Yes, that's my partner</button>
+          <button class="btn secondary" id="no" style="margin-top:0">Not me</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="p2-join">
+      <div class="card">
+        <p style="font-weight:700;margin:0 0 10px">Want to try it with them?</p>
+        <input class="hp" type="text" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true" placeholder="Leave blank" />
+        <label>Where should we reach you? (email or phone)</label>
+        <input type="email" id="contact" placeholder="you@email.com" autocomplete="email" />
+        <button class="btn" id="join" style="margin-top:16px">I'm in</button>
+        <p class="muted">No app to install yet. You're telling us you'd do this together — that's the whole test.</p>
+      </div>
+    </div>
+
+    <div class="step" id="p2-done">
+      <div class="card success" style="text-align:center">
+        <span class="heart">💞</span>
+        <p style="font-weight:800;font-size:22px;margin:0 0 8px">You're both in.</p>
+        <p class="sub" style="margin:0 auto">That's the hardest part. We'll be in touch as this opens up — together.</p>
+      </div>
+    </div>`;
+
+  const show=(id)=>{document.querySelectorAll(".step").forEach(s=>s.classList.remove("active"));$("#"+id).classList.add("active");window.scrollTo({top:0,behavior:"smooth"});};
+
+  $("#yes").onclick=()=>{ track("p2_confirmed_partner",{is_creator_self_open}); show("p2-join"); setTimeout(()=>$("#contact").focus(),250); };
+  $("#no").onclick=()=>{ track("p2_not_recipient",{is_creator_self_open}); $("#p2-confirm").innerHTML='<div class="card"><p class="muted" style="margin:0">No problem — thanks for letting us know.</p></div>'; };
+
+  let intent=false;
+  $("#contact").addEventListener("focus",()=>{ if(!intent){intent=true; track("p2_join_intent",{is_creator_self_open});} },{once:true});
+
+  $("#join").onclick=()=>{
+    const c=($("#contact").value||"").trim();
+    const honeypot = ($("#hp").value||"").length>0;
+    const dwell_ms = Date.now()-landedAt;
+    const isEmail=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c);
+    const isPhone=/^[+]?[\d\s().-]{7,}$/.test(c);
+    if(!isEmail && !isPhone){ $("#contact").style.borderColor="var(--coral)"; return; }
+    if(ls.get("p2_joined:"+inviteParam)==="1"){ show("p2-done"); return; } // joined-once guard
+    ls.set("p2_joined:"+inviteParam,"1");
+    track("p2_join_intent_confirm",{is_creator_self_open}); // ensure intent recorded even if focus missed
+    track("p2_joined",{
+      invite_id: inviteParam,
+      is_creator_self_open,            // analysis EXCLUDES true from join-rate
+      p2_confirmed_partner: true,      // confirmed-partner tier
+      join_method: isEmail?"email":"phone",
+      contact_captured: true,
+      honeypot_tripped: honeypot,      // analysis EXCLUDES true
+      dwell_ms,
+      dwell_ok: dwell_ms>=4000,        // analysis EXCLUDES dwell_ok=false (bot/double-tap)
+      is_repeat_open: repeat
+    });
+    show("p2-done");
+  };
+
+  // P2 open events (named + the heartbeat pageview)
+  track("probe_pageview",{page:"invited", referrer_source:(qs.get("utm_source")|| (document.referrer?"link":"direct"))});
+  track("p2_invite_opened",{invite_id:inviteParam, is_creator_self_open, is_repeat_open:repeat,
+                            open_index: repeat?2:1});
+}
+
+/* ---------- debug overlay ---------- */
+function renderDbg(){
+  const d=$("#dbg"); d.style.display="block";
+  d.innerHTML=`<b>PROBE DEBUG</b> · role=${role} · arm=${arm} · invite=${inviteParam||"—"} · session=${session_id.slice(0,8)} · key=${POSTHOG_KEY.indexOf("REPLACE")<0?"set":"CONSOLE-ONLY"}<br>`+
+    __events.map(e=>`→ <b>${e.event}</b> ${JSON.stringify(Object.fromEntries(Object.entries(e).filter(([k])=>!["event","probe_version","product","session_id","role","arm"].includes(k))))}`).join("<br>");
+}
+
+/* ---------- boot ---------- */
+initPosthog();
+if(role==="p2") renderP2(); else renderP1();
+if(qs.get("debug")==="1") renderDbg();
+</script>
+</body>
+</html>
