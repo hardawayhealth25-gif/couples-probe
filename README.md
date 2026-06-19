@@ -62,7 +62,9 @@ ALL must be true for an `invite_id`:
 
 ## Setup (5 minutes)
 
-1. **Analytics is already wired.** PostHog's free plan caps at 1 project (a dedicated one needs a paid plan), so the probe points at the **Healthy Anger app's own project** (key `phc_ym3Erc…`, already in `index.html`) — **not** HealthyOne's. Isolation is by tag: every event carries `probe_version='anger-couples-v1'`, and **every analysis query below filters on it**. The probe's event names (`invite_created`, `p2_joined`, …) don't collide with the app's, so the app's funnels are unaffected. *(If you ever upgrade PostHog, swap in a dedicated project key for total separation.)*
+1. **Analytics is already wired.** PostHog's free plan caps at 1 project (a dedicated one needs a paid plan), so the probe points at the **Healthy Anger app's own project** (403394, key `phc_ym3Erc…`, already in `index.html`) — **not** HealthyOne's. Isolation is by tag: every event carries `probe_version='anger-couples-v1'`, and **every analysis query below filters on it**. The probe's event names (`invite_created`, `p2_joined`, …) don't collide with the app's, so the app's funnels are unaffected. *(If you ever upgrade PostHog, swap in a dedicated project key for total separation.)*
+
+   **📊 Pre-built dashboard (live, no HogQL to write):** https://us.posthog.com/project/403394/dashboard/1736405 — ① join-given-open by arm (the PRIMARY gate), ② partner-2 funnel & rates, ③ sample-accrual / meta-kill watch, ④ couples-vs-solo control arm. The HogQL below is mirrored there. *(A few `referrer_source='qa_verify'`/test pageviews from setup are in the data — ignore them; real traffic will dwarf them.)*
 3. **Deploy** (static, free): drag the `couples-probe/` folder onto **[Netlify Drop](https://app.netlify.com/drop)** → you get a public URL. (Same path used for the Recipella probe and the JCC site.)
 4. **Smoke-test before driving traffic** (see below) — a zero join rate from a wiring bug looks identical to a real NO-GO.
 
